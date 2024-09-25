@@ -5,7 +5,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from "react";
-import { Conference } from "../schema/app_schema.js";
+import { Items } from "../schema/app_schema.js";
 import { ClientSession } from "../schema/session_schema.js";
 import "../output.css";
 import { IFluidContainer, IMember, IServiceAudience, TreeView } from "fluid-framework";
@@ -16,14 +16,14 @@ import { PrompterResult } from "../utils/gpt_helpers.js";
 import { MainBranch, ViewBranch } from "../utils/utils.js";
 
 export function ReactApp(props: {
-	conferenceTree: TreeView<typeof Conference>;
+	appTree: TreeView<typeof Items>;
 	sessionTree: TreeView<typeof ClientSession>;
 	audience: IServiceAudience<IMember>;
 	container: IFluidContainer;
 	undoRedo: undoRedo;
 	applyAgentEdits: (
 		prompt: string,
-		treeView: TreeView<typeof Conference>,
+		treeView: TreeView<typeof Items>,
 		abortController: AbortController,
 	) => Promise<PrompterResult>;
 	abortController: AbortController;
@@ -33,11 +33,11 @@ export function ReactApp(props: {
 	const [saved, setSaved] = useState(false);
 	const [fluidMembers, setFluidMembers] = useState<IMember[]>([]);
 
-	const treeViewBase: MainBranch<typeof Conference> = {
+	const treeViewBase: MainBranch<typeof Items> = {
 		name: "main",
-		view: props.conferenceTree,
+		view: props.appTree,
 	};
-	const [currentView, setCurrentView] = useState<ViewBranch<typeof Conference>>(treeViewBase);
+	const [currentView, setCurrentView] = useState<ViewBranch<typeof Items>>(treeViewBase);
 
 	/** Unsubscribe to undo-redo events when the component unmounts */
 	useEffect(() => {
@@ -62,6 +62,10 @@ export function ReactApp(props: {
 		e.preventDefault();
 	});
 
+	if (currentUser === undefined) {
+		return <></>;
+	}
+
 	return (
 		<>
 			<div
@@ -81,8 +85,7 @@ export function ReactApp(props: {
 				/>
 				<div className="flex h-[calc(100vh-48px)] flex-row ">
 					<Canvas
-						conferenceTree={currentView.view}
-						showingBranch={currentView.name === "temp"}
+						items={currentView.view}
 						sessionTree={props.sessionTree}
 						audience={props.audience}
 						container={props.container}

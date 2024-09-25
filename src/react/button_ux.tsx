@@ -4,67 +4,58 @@
  */
 
 import React from "react";
-import { Conference, Days } from "../schema/app_schema.js";
+import { Items, Note } from "../schema/app_schema.js";
+import { moveItem, findNote } from "../utils/app_helpers.js";
 import {
 	ThumbLikeFilled,
 	DismissFilled,
 	NoteRegular,
 	DeleteRegular,
+	RectangleLandscapeRegular,
 	ArrowUndoFilled,
 	ArrowRedoFilled,
-	StarFilled,
-	CalendarAddFilled,
-	CalendarCancelFilled,
-	MoreVerticalFilled,
 } from "@fluentui/react-icons";
 import { ClientSession } from "../schema/session_schema.js";
+import { getSelectedNotes } from "../utils/session_helpers.js";
+import { Tree } from "fluid-framework";
 
-export function NewDayButton(props: {
-	days: Days;
+export function NewGroupButton(props: {
+	items: Items;
 	session: ClientSession;
 	clientId: string;
 }): JSX.Element {
 	const handleClick = (e: React.MouseEvent) => {
 		e.stopPropagation();
-		props.days.addDay();
+		// Wrap the add group operation in a transaction as it adds a group and potentially moves
+		// multiple notes into the group and we want to ensure that the operation is atomic.
+		// This ensures that the revertible of the operation will undo all the changes made by the operation.
+		Tree.runTransaction(props.items, () => {
+			const group = props.items.addGroup("[new group]");
+			const ids = getSelectedNotes(props.session, props.clientId);
+			for (const id of ids) {
+				const n = findNote(props.items, id);
+				if (Tree.is(n, Note)) {
+					moveItem(n, Infinity, group.items);
+				}
+			}
+		});
 	};
 	return (
 		<IconButton
 			color="white"
 			background="black"
 			handleClick={(e: React.MouseEvent) => handleClick(e)}
-			icon={<CalendarAddFilled />}
+			icon={<RectangleLandscapeRegular />}
 		>
-			Add Day
+			Add Group
 		</IconButton>
 	);
 }
 
-export function DeleteDayButton(props: {
-	days: Days;
-	session: ClientSession;
-	clientId: string;
-}): JSX.Element {
+export function NewNoteButton(props: { items: Items; clientId: string }): JSX.Element {
 	const handleClick = (e: React.MouseEvent) => {
 		e.stopPropagation();
-		props.days.removeDay();
-	};
-	return (
-		<IconButton
-			color="white"
-			background="black"
-			handleClick={(e: React.MouseEvent) => handleClick(e)}
-			icon={<CalendarCancelFilled />}
-		>
-			Remove Day
-		</IconButton>
-	);
-}
-
-export function NewSessionButton(props: { conference: Conference; clientId: string }): JSX.Element {
-	const handleClick = (e: React.MouseEvent) => {
-		e.stopPropagation();
-		props.conference.unscheduled.sessions.addSession();
+		props.items.addNode(props.clientId);
 	};
 
 	return (
@@ -74,26 +65,36 @@ export function NewSessionButton(props: { conference: Conference; clientId: stri
 			handleClick={(e: React.MouseEvent) => handleClick(e)}
 			icon={<NoteRegular />}
 		>
-			New Session
+			Add Note
 		</IconButton>
 	);
 }
 
-export function DeleteSessionsButton(props: {
-	conference: Conference;
+export function DeleteNotesButton(props: {
+	session: ClientSession;
+	items: Items;
 	clientId: string;
 }): JSX.Element {
 	const handleClick = () => {
-		props.conference.clear();
+		// Wrap the delete operation in a transaction as it potentially modifies multiple notes
+		// and we want to ensure that the operation is atomic. This ensures that the revertible of
+		// the operation will undo all the changes made by the operation.
+		Tree.runTransaction(props.items, () => {
+			const ids = getSelectedNotes(props.session, props.clientId);
+			for (const i of ids) {
+				const n = findNote(props.items, i);
+				n?.delete();
+			}
+		});
 	};
 	return (
 		<IconButton
 			color="white"
-			background="red"
+			background="black"
 			handleClick={() => handleClick()}
 			icon={<DeleteRegular />}
 		>
-			Clear
+			Delete Note
 		</IconButton>
 	);
 }
@@ -140,29 +141,6 @@ export function DeleteButton(props: {
 		>
 			{MiniX()}
 		</button>
-	);
-}
-
-export function ShowDetailsButton(props: { show: (show: boolean) => void }): JSX.Element {
-	return (
-		<MoreVerticalFilled
-			className="bg-transparent hover:bg-gray-600 text-black hover:text-white rounded"
-			color="black"
-			onClick={() => props.show(true)}
-		/>
-	);
-}
-
-export function ShowPromptButton(props: { show: (arg: boolean) => void }): JSX.Element {
-	return (
-		<IconButton
-			color="white"
-			background="black"
-			handleClick={() => props.show(true)}
-			icon={<StarFilled />}
-		>
-			Get Started...
-		</IconButton>
 	);
 }
 
@@ -219,13 +197,9 @@ export function ButtonGroup(props: { children: React.ReactNode }): JSX.Element {
 	return <div className="flex flex-intial items-center">{props.children}</div>;
 }
 
-export function Divider(): JSX.Element {
-	return <div className="border-r border-gray-400 border-1 h-6"></div>;
-}
-
 export function Floater(props: { children: React.ReactNode }): JSX.Element {
 	return (
-		<div className="transition transform absolute z-[1000] bottom-4 inset-x-0 pb-2 sm:pb-5 opacity-100 scale-100 translate-y-0 ease-out duration-500 text-white">
+		<div className="transition transform absolute z-100 bottom-0 inset-x-0 pb-2 sm:pb-5 opacity-100 scale-100 translate-y-0 ease-out duration-500 text-white">
 			<div className="max-w-screen-md mx-auto px-2 sm:px-4">
 				<div className="p-2 rounded-lg bg-black shadow-lg sm:p-3">
 					<div className="flex flex-row items-center justify-between flex-wrap">

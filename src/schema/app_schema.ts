@@ -3,181 +3,151 @@
  * Licensed under the MIT License.
  */
 
-import { TreeViewConfiguration, SchemaFactory, Tree } from "fluid-framework";
-import {} from "@fluidframework/tree/alpha";
+import {
+	TreeViewConfiguration,
+	SchemaFactory,
+	Tree,
+	ValidateRecursiveSchema,
+} from "fluid-framework";
+import { v4 as uuid } from "uuid";
 
 // Schema is defined using a factory object that generates classes for objects as well
 // as list and map nodes.
 
 // Include a UUID to guarantee that this schema will be uniquely identifiable.
-const sf = new SchemaFactory("Planner");
+// As this schema uses a recursive type, the beta SchemaFactoryRecursive is used instead of just SchemaFactory.
+const sf = new SchemaFactory("fc1db2e8-0a00-11ee-be56-0242ac120002");
 
-// Define the schema for the session object.
+// Define the schema for the note object.
 // Helper functions for working with the data contained in this object
 // are included in this class definition as methods.
-export class Session extends sf.object(
-	"Session",
+export class Note extends sf.object(
+	"Note",
+	// Fields for Notes which SharedTree will store and synchronize across clients.
+	// These fields are exposed as members of instances of the Note class.
 	{
-		id: sf.identifier,
-		title: sf.string,
-		abstract: sf.string,
-		sessionType: sf.required(sf.string, {
-			metadata: {
-				description:
-					"This is one of four possible strings: 'session', 'workshop', 'panel', or 'keynote'. NOTHING IS ELSE IS ALLOWED.",
-			},
-		}),
-		created: sf.required(sf.number, { metadata: { llmDefault: () => Date.now() } }),
-		lastChanged: sf.required(sf.number, { metadata: { llmDefault: () => Date.now() } }),
-	},
-	{
-		metadata: {
-			description:
-				"A session object that represents a session, workshop, panel, or keynote." +
-				"'sessionType' must be one of four possible types: 'session', 'workshop', 'panel', or 'keynote'." +
-				"The session should be related to the conference name.",
-		},
+		/**
+		 * Id to make building the React app simpler.
+		 */
+		id: sf.string,
+		text: sf.string,
+		author: sf.string,
+		/**
+		 * Sequence of user ids to track which users have voted on this note.
+		 */
+		votes: sf.array(sf.string),
+		created: sf.number,
+		lastChanged: sf.number,
 	},
 ) {
-	// Update the title text and also update the timestamp
-	public updateTitle(text: string) {
+	// Update the note text and also update the timestamp in the note
+	public readonly updateText = (text: string) => {
 		this.lastChanged = new Date().getTime();
-		this.title = text;
-	}
+		this.text = text;
+	};
 
-	// Update the abstract text and also update the timestamp
-	public updateAbstract(text: string) {
-		this.lastChanged = new Date().getTime();
-		this.abstract = text;
-	}
+	public readonly toggleVote = (user: string) => {
+		const index = this.votes.indexOf(user);
+		if (index > -1) {
+			this.votes.removeAt(index);
+		} else {
+			this.votes.insertAtEnd(user);
+		}
 
-	// Update the session type and also update the timestamp
-	public updateSessionType(type: keyof typeof SessionType) {
 		this.lastChanged = new Date().getTime();
-		this.sessionType = type;
-	}
+	};
 
 	/**
-	 * Removes a node from its parent.
+	 * Removes a node from its parent {@link Items}.
+	 * If the note is not in an {@link Items}, it is left unchanged.
 	 */
-	public delete() {
+	public readonly delete = () => {
 		const parent = Tree.parent(this);
-		// Use type narrowing to ensure that parent is correct.
-		if (Tree.is(parent, Sessions)) {
+		// Use type narrowing to ensure that parent is Items as expected for a note.
+		if (Tree.is(parent, Items)) {
 			const index = parent.indexOf(this);
 			parent.removeAt(index);
 		}
-	}
+	};
 }
 
-const SessionType = {
-	session: "Session",
-	workshop: "Workshop",
-	panel: "Panel",
-	keynote: "Keynote",
-};
+// Schema for a list of Notes and Groups.
+export class Items extends sf.arrayRecursive("Items", [() => Group, Note]) {
+	public readonly addNode = (author: string) => {
+		const timeStamp = new Date().getTime();
 
-export class Sessions extends sf.array("Sessions", Session) {
-	// Add a session to the conference
-	public addSession() {
-		const currentTime = new Date().getTime();
-		const session = new Session({
-			title: "New Session",
-			abstract: "New Abstract",
-			sessionType: "session",
-			created: currentTime,
-			lastChanged: currentTime,
+		// Define the note to add to the SharedTree - this must conform to
+		// the schema definition of a note
+		const newNote = new Note({
+			id: uuid(),
+			text: "",
+			author,
+			votes: [],
+			created: timeStamp,
+			lastChanged: timeStamp,
 		});
-		this.insertAtEnd(session);
-		return session;
-	}
-}
 
-export class Unscheduled extends sf.object("Unscheduled", {
-	sessions: sf.required(Sessions, {
-		metadata: {
-			description:
-				"These sessions are not scheduled yet. The user (or AI agent) can move them to a specific day.",
-		},
-	}),
-}) {}
+		// Insert the note into the SharedTree.
+		this.insertAtEnd(newNote);
+	};
 
-export class Day extends sf.object("Day", {
-	sessions: sf.required(Sessions, {
-		metadata: {
-			description: "The sessions scheduled on this day.",
-		},
-	}),
-}) {}
-
-export class Days extends sf.array("Days", Day) {
-	// Add a day to the conference
-	public addDay(): Day {
-		const day = new Day({ sessions: [] });
-		this.insertAtEnd(day);
-		return day;
-	}
-
-	// Remove the last day from the conference
-	public removeDay() {
-		if (this.length === 0) {
-			return;
-		}
-		// Get the conference object from the parent of this map
-		const conference = Tree.parent(this);
-		// Get the unscheduled sessions array from the conference object
-		// and move all the sessions in the Day to the sessions array
-		if (Tree.is(conference, Conference)) {
-			const sessions = conference?.unscheduled.sessions;
-			const lastDay = this[this.length - 1];
-			if (lastDay) {
-				Tree.runTransaction<Days>(this, () => {
-					// Move all the sessions in the Day to the sessions array
-					if (lastDay.sessions.length !== 0) {
-						const index = sessions.length;
-						sessions.moveRangeToIndex(
-							index,
-							0,
-							lastDay.sessions.length,
-							lastDay.sessions,
-						);
-					}
-					// Remove the day from the conference
-					this.removeAt(this.length - 1);
-				});
-			}
-		}
-	}
-}
-
-export class Conference extends sf.object(
-	"Conference",
-	{
-		name: sf.string,
-		unscheduled: Unscheduled,
-		days: Days,
-		sessionsPerDay: sf.number,
-	},
-	{
-		metadata: {
-			description:
-				"A conference object that contains all the sessions. Sessions should be based on the Conference name." +
-				"Each day should have a maximum of 'sessionsPerDay' sessions.",
-		},
-	},
-) {
-	// Clear all the sessions from the conference
-	public clear() {
-		Tree.runTransaction<Conference>(this, () => {
-			if (this.unscheduled.sessions.length > 0) this.unscheduled.sessions.removeRange();
-			if (this.days.length > 0) this.days.removeRange();
+	/**
+	 * Add a new group (container for notes) to the SharedTree.
+	 */
+	public readonly addGroup = (name: string): Group => {
+		const group = new Group({
+			id: uuid(),
+			name,
+			items: new Items([]),
 		});
-	}
+
+		this.insertAtEnd(group);
+		return group;
+	};
+}
+
+{
+	// Due to limitations of TypeScript, recursive schema may not produce type errors when declared incorrectly.
+	// Using ValidateRecursiveSchema helps ensure that mistakes made in the definition of a recursive schema (like `Items`)
+	// will introduce a compile error.
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	type _check = ValidateRecursiveSchema<typeof Items>;
+}
+
+// Define the schema for the container of notes.
+export class Group extends sf.object("Group", {
+	id: sf.string,
+	name: sf.string,
+	items: Items,
+}) {
+	/**
+	 * Removes a group from its parent {@link Items}.
+	 * If the note is not in an {@link Items}, it is left unchanged.
+	 *
+	 * Before removing the group, its children are move to the parent.
+	 */
+	public readonly delete = () => {
+		const parent = Tree.parent(this);
+		if (Tree.is(parent, Items)) {
+			// Run the deletion as a transaction to ensure that the tree is in a consistent state
+			Tree.runTransaction(parent, () => {
+				// Move the children of the group to the parent
+				if (this.items.length !== 0) {
+					const index = parent.indexOf(this);
+					parent.moveRangeToIndex(index, 0, this.items.length, this.items);
+				}
+
+				// Delete the now empty group
+				const i = parent.indexOf(this);
+				parent.removeAt(i);
+			});
+		}
+	};
 }
 
 // Export the tree config appropriate for this schema.
 // This is passed into the SharedTree when it is initialized.
-export const appTreeConfiguration = new TreeViewConfiguration({
+export const appTreeConfiguration = new TreeViewConfiguration(
 	// Schema for the root
-	schema: Conference,
-});
+	{ schema: Items },
+);

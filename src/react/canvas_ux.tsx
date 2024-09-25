@@ -3,8 +3,8 @@
  * Licensed under the MIT License.
  */
 
-import React, { useCallback, useEffect, useState } from "react";
-import { Conference } from "../schema/app_schema.js";
+import React, { useEffect, useState } from "react";
+import { Note, Group, Items } from "../schema/app_schema.js";
 import { ClientSession } from "../schema/session_schema.js";
 import {
 	ConnectionState,
@@ -14,207 +14,177 @@ import {
 	Tree,
 	TreeView,
 } from "fluid-framework";
-import { RootSessionWrapper } from "./session_ux.js";
+import { GroupView } from "./group_ux.js";
+import { AddNoteButton, NoteView, RootNoteWrapper } from "./note_ux.js";
 import {
 	Floater,
-	NewDayButton,
-	NewSessionButton,
+	NewGroupButton,
+	NewNoteButton,
+	DeleteNotesButton,
 	ButtonGroup,
 	UndoButton,
 	RedoButton,
-	DeleteDayButton,
-	DeleteSessionsButton,
 } from "./button_ux.js";
 import { undoRedo } from "../utils/undo.js";
-import { SessionsView } from "./sessions_ux.js";
 
 export function Canvas(props: {
-	conferenceTree: TreeView<typeof Conference>;
-	/**
-	 * Whether or not the canvas is showing the temp branch, or the main branch.
-	 */
-	showingBranch: boolean;
+	items: TreeView<typeof Items>;
 	sessionTree: TreeView<typeof ClientSession>;
 	audience: IServiceAudience<IMember>;
 	container: IFluidContainer;
 	fluidMembers: IMember[];
-	currentUser: IMember | undefined;
+	currentUser: IMember;
 	undoRedo: undoRedo;
 	setCurrentUser: (arg: IMember) => void;
 	setConnectionState: (arg: string) => void;
 	setSaved: (arg: boolean) => void;
 	setFluidMembers: (arg: IMember[]) => void;
 }): JSX.Element {
-	const {
-		audience,
-		conferenceTree,
-		showingBranch,
-		container,
-		currentUser,
-		fluidMembers,
-		sessionTree,
-		setConnectionState,
-		setCurrentUser,
-		setFluidMembers,
-		setSaved,
-		undoRedo,
-	} = props;
-
-	const [invalidations, setInvalidations] = useState(0);
+	const [itemsArray, setItemsArray] = useState<(Note | Group)[]>(
+		props.items.root.map((item) => item),
+	);
 
 	// Register for tree deltas when the component mounts.
-	// Any time the tree changes, the app will update
-	// For more complex apps, this code can be included
-	// on lower level components.
+	// Any time the items array changes, the app will update.
 	useEffect(() => {
-		const unsubscribe = Tree.on(conferenceTree.root, "treeChanged", () => {
-			setInvalidations(invalidations + Math.random());
+		const unsubscribe = Tree.on(props.items.root, "nodeChanged", () => {
+			setItemsArray(props.items.root.map((item) => item));
 		});
 		return unsubscribe;
-	}, [invalidations, conferenceTree.root]);
+	}, []);
 
 	useEffect(() => {
 		const updateConnectionState = () => {
-			if (container.connectionState === ConnectionState.Connected) {
-				setConnectionState("connected");
-			} else if (container.connectionState === ConnectionState.Disconnected) {
-				setConnectionState("disconnected");
-			} else if (container.connectionState === ConnectionState.EstablishingConnection) {
-				setConnectionState("connecting");
-			} else if (container.connectionState === ConnectionState.CatchingUp) {
-				setConnectionState("catching up");
+			if (props.container.connectionState === ConnectionState.Connected) {
+				props.setConnectionState("connected");
+			} else if (props.container.connectionState === ConnectionState.Disconnected) {
+				props.setConnectionState("disconnected");
+			} else if (props.container.connectionState === ConnectionState.EstablishingConnection) {
+				props.setConnectionState("connecting");
+			} else if (props.container.connectionState === ConnectionState.CatchingUp) {
+				props.setConnectionState("catching up");
 			}
 		};
 		updateConnectionState();
-		setSaved(!container.isDirty);
-		container.on("connected", updateConnectionState);
-		container.on("disconnected", updateConnectionState);
-		container.on("dirty", () => setSaved(false));
-		container.on("saved", () => setSaved(true));
-		container.on("disposed", updateConnectionState);
-	}, [container, setConnectionState, setSaved]);
+		props.setSaved(!props.container.isDirty);
+		props.container.on("connected", updateConnectionState);
+		props.container.on("disconnected", updateConnectionState);
+		props.container.on("dirty", () => props.setSaved(false));
+		props.container.on("saved", () => props.setSaved(true));
+		props.container.on("disposed", updateConnectionState);
+	}, []);
 
-	const updateMembers = useCallback(() => {
-		if (audience.getMyself() == undefined) return;
-		if (audience.getMyself()?.id == undefined) return;
-		if (audience.getMembers() == undefined) return;
-		if (container.connectionState !== ConnectionState.Connected) return;
-		if (currentUser === undefined) {
-			const user = audience.getMyself();
+	const updateMembers = () => {
+		if (props.audience.getMyself() == undefined) return;
+		if (props.audience.getMyself()?.id == undefined) return;
+		if (props.audience.getMembers() == undefined) return;
+		if (props.container.connectionState !== ConnectionState.Connected) return;
+		if (props.currentUser === undefined) {
+			const user = props.audience.getMyself();
 			if (user !== undefined) {
-				setCurrentUser(user);
+				props.setCurrentUser(user);
 			}
 		}
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		setFluidMembers(Array.from(audience.getMembers()).map(([_, member]) => member));
-	}, [audience, container, currentUser, setCurrentUser, setFluidMembers]);
+		props.setFluidMembers(Array.from(props.audience.getMembers().values()));
+	};
 
 	useEffect(() => {
-		audience.on("membersChanged", updateMembers);
+		props.audience.on("membersChanged", updateMembers);
+		updateMembers();
 		return () => {
-			audience.off("membersChanged", updateMembers);
+			props.audience.off("membersChanged", updateMembers);
 		};
-	}, [audience, updateMembers]);
-
-	const clientId = currentUser?.id ?? "";
-	let borderStyle = "border-2 border-gray-200";
-	if (showingBranch) {
-		console.log("isBranch");
-		borderStyle = "border-dashed border-8 border-red-500 rounded-lg";
-	} else {
-		console.log("notBranch");
-		borderStyle = "border-0";
-	}
+	}, []);
 
 	return (
-		<div className={`relative flex grow-0 h-full w-full bg-transparent ${borderStyle}`}>
-			<ConferenceView
-				conference={conferenceTree.root}
-				clientId={clientId}
-				clientSession={sessionTree.root}
-				fluidMembers={fluidMembers}
+		<div className="relative flex grow-0 h-full w-full bg-transparent">
+			<ItemsView
+				items={itemsArray}
+				parent={props.items.root}
+				clientId={props.currentUser.id}
+				session={props.sessionTree.root}
+				fluidMembers={props.fluidMembers}
 			/>
 			<Floater>
 				<ButtonGroup>
-					<NewSessionButton conference={conferenceTree.root} clientId={clientId} />
-					<NewDayButton
-						days={conferenceTree.root.days}
-						session={sessionTree.root}
-						clientId={clientId}
+					<NewGroupButton
+						items={props.items.root}
+						session={props.sessionTree.root}
+						clientId={props.currentUser.id}
 					/>
-					<DeleteDayButton
-						days={conferenceTree.root.days}
-						session={sessionTree.root}
-						clientId={clientId}
+					<NewNoteButton items={props.items.root} clientId={props.currentUser.id} />
+					<DeleteNotesButton
+						session={props.sessionTree.root}
+						items={props.items.root}
+						clientId={props.currentUser.id}
 					/>
 				</ButtonGroup>
 				<ButtonGroup>
-					<DeleteSessionsButton conference={conferenceTree.root} clientId={clientId} />
-					<UndoButton undo={() => undoRedo.undo()} />
-					<RedoButton redo={() => undoRedo.redo()} />
+					<UndoButton undo={() => props.undoRedo.undo()} />
+					<RedoButton redo={() => props.undoRedo.redo()} />
 				</ButtonGroup>
 			</Floater>
 		</div>
 	);
 }
 
-export function ConferenceView(props: {
-	conference: Conference;
+export function ItemsView(props: {
+	items: (Note | Group)[];
+	parent: Items;
 	clientId: string;
-	clientSession: ClientSession;
+	session: ClientSession;
 	fluidMembers: IMember[];
 }): JSX.Element {
-	const sessionArray = [];
-	for (const i of props.conference.unscheduled.sessions) {
-		sessionArray.push(
-			<RootSessionWrapper
-				key={i.id}
-				session={i}
-				clientId={props.clientId}
-				clientSession={props.clientSession}
-				fluidMembers={props.fluidMembers}
-			/>,
-		);
+	const isRoot = Tree.parent(props.parent) === undefined;
+
+	const pilesArray = [];
+	for (const i of props.items) {
+		if (Tree.is(i, Group)) {
+			pilesArray.push(
+				<GroupView
+					key={i.id}
+					group={i}
+					clientId={props.clientId}
+					session={props.session}
+					fluidMembers={props.fluidMembers}
+				/>,
+			);
+		} else if (Tree.is(i, Note)) {
+			if (isRoot) {
+				pilesArray.push(
+					<RootNoteWrapper
+						key={i.id}
+						note={i}
+						clientId={props.clientId}
+						session={props.session}
+						fluidMembers={props.fluidMembers}
+					/>,
+				);
+			} else {
+				pilesArray.push(
+					<NoteView
+						key={i.id}
+						note={i}
+						clientId={props.clientId}
+						session={props.session}
+						fluidMembers={props.fluidMembers}
+					/>,
+				);
+			}
+		}
 	}
 
-	return (
-		<div className="h-full w-full overflow-auto">
-			<div className="flex flex-row h-full w-full content-start">
-				<div className="flex h-full w-fit p-4">
-					<SessionsView
-						sessions={props.conference.unscheduled.sessions}
-						title={props.conference.name}
-						{...props}
-					/>
-				</div>
-				<div className="flex flex-row h-full w-full flex-nowrap gap-4 p-4 content-start">
-					<DaysView {...props} />
-				</div>
+	if (isRoot) {
+		return (
+			<div className="flex grow-0 flex-row h-full w-full flex-wrap gap-4 p-4 content-start overflow-y-scroll">
+				{pilesArray}
+				<div className="flex w-full h-24"></div>
 			</div>
-		</div>
-	);
-}
-
-// React component that renders each day in the conference side by side
-export function DaysView(props: {
-	conference: Conference;
-	clientId: string;
-	clientSession: ClientSession;
-	fluidMembers: IMember[];
-}): JSX.Element {
-	const dayArray = [];
-	for (const day of props.conference.days) {
-		dayArray.push(
-			<SessionsView
-				key={Tree.key(day)}
-				sessions={day.sessions}
-				clientSession={props.clientSession}
-				clientId={props.clientId}
-				fluidMembers={props.fluidMembers}
-				title={"Day " + ((Tree.key(day) as number) + 1)}
-			/>,
 		);
+	} else {
+		pilesArray.push(
+			<AddNoteButton key="newNote" target={props.parent} clientId={props.clientId} />,
+		);
+		return <div className="flex flex-row flex-wrap gap-8 p-2">{pilesArray}</div>;
 	}
-
-	return <>{dayArray}</>;
 }

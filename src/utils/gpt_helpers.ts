@@ -1,4 +1,4 @@
-import { Conference, Session } from "../schema/app_schema.js";
+import { Items, Note } from "../schema/app_schema.js";
 import { AzureOpenAI } from "openai";
 import { PublicClientApplication } from "@azure/msal-browser";
 
@@ -29,7 +29,7 @@ export function createSessionPrompter(
 	msalInstance: PublicClientApplication,
 ): (
 	prompt: string,
-	treeView: TreeView<typeof Conference>,
+	treeView: TreeView<typeof Items>,
 	abortController: AbortController,
 ) => Promise<PrompterResult> {
 	console.log("Creating Azure OpenAI prompter");
@@ -58,17 +58,6 @@ export function createSessionPrompter(
 			maxModelCalls: 20,
 			finalReviewStep: true,
 			dumpDebugLog: true,
-			validator: (newContent: TreeNode) => {
-				// validate the new content
-				if (newContent instanceof Session) {
-					const sessionTypes = ["session", "workshop", "keynote", "panel"];
-					if (!sessionTypes.includes(newContent.sessionType)) {
-						throw new Error(
-							"sessionType must be one of: session, workshop, keynote, panel",
-						);
-					}
-				}
-			},
 		});
 	};
 }

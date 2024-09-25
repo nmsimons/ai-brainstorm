@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Conference } from "../schema/app_schema.js";
+import { Items } from "../schema/app_schema.js";
 import { TreeView, TreeViewConfiguration } from "fluid-framework";
 import { getBranch } from "fluid-framework/alpha";
 import { PrompterResult } from "../utils/gpt_helpers.js";
@@ -14,13 +14,13 @@ enum PromptState {
 export function HeaderPrompt(props: {
 	applyAgentEdits: (
 		prompt: string,
-		treeView: TreeView<typeof Conference>,
+		treeView: TreeView<typeof Items>,
 		abortController: AbortController,
 	) => Promise<PrompterResult>;
-	treeViewBase: MainBranch<typeof Conference>;
+	treeViewBase: MainBranch<typeof Items>;
 	abortController: AbortController;
-	setCurrentView: (arg: ViewBranch<typeof Conference>) => void;
-	currentView: ViewBranch<typeof Conference>;
+	setCurrentView: (arg: ViewBranch<typeof Items>) => void;
+	currentView: ViewBranch<typeof Items>;
 }): JSX.Element {
 	const placeholderType = "Type here to talk to a robot...";
 	const placeholderTalk = "Talking to a robot...";
@@ -37,13 +37,13 @@ export function HeaderPrompt(props: {
 
 		// If we're already on an unmerged temp branch, keep using it.
 		// Otherwise, create a new temp branch and set it as the current view.
-		let branch: TempBranch<typeof Conference>;
+		let branch: TempBranch<typeof Items>;
 		if (props.currentView.name === "temp") {
 			branch = props.currentView;
 		} else {
 			const tempBranch = getBranch(props.treeViewBase.view).branch();
 			const tempBranchView = tempBranch.viewWith(
-				new TreeViewConfiguration({ schema: Conference }),
+				new TreeViewConfiguration({ schema: Items }),
 			);
 			branch = {
 				branch: tempBranch,

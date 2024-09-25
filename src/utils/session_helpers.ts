@@ -4,42 +4,40 @@
  */
 
 import { IMember } from "fluid-framework";
-import { Session } from "../schema/app_schema.js";
+import { Note } from "../schema/app_schema.js";
 import { ClientSession, Client } from "../schema/session_schema.js";
 import { selectAction, undefinedUserId } from "./utils.js";
 
 export const testRemoteNoteSelection = (
-	item: Session,
+	note: Note,
 	session: ClientSession,
 	clientId: string,
-	setRemoteSelected: (value: boolean) => void,
-	setSelected: (value: boolean) => void,
 	fluidMembers: IMember[],
-) => {
-	if (clientId == undefinedUserId) return;
+): { selected: boolean; remoteSelected: boolean } => {
+	if (clientId == undefinedUserId) return { selected: false, remoteSelected: false };
 
 	let selected = false;
 	let remoteSelected = false;
 
 	for (const c of session.clients) {
 		if (c.clientId == clientId) {
-			if (c.selected.indexOf(item.id) != -1) {
+			if (c.selected.indexOf(note.id) != -1) {
 				selected = true;
 			}
 		}
 
 		if (c.clientId != clientId && fluidMembers.some((member) => member.id === c.clientId)) {
-			if (c.selected.indexOf(item.id) != -1) {
+			if (c.selected.indexOf(note.id) != -1) {
 				remoteSelected = true;
 			}
 		}
 	}
-	setRemoteSelected(remoteSelected);
-	setSelected(selected);
+
+	return { selected, remoteSelected };
 };
 
 export const updateRemoteNoteSelection = (
-	item: Session,
+	note: Note,
 	action: selectAction,
 	session: ClientSession,
 	clientId: string,
@@ -50,7 +48,7 @@ export const updateRemoteNoteSelection = (
 	if (action == selectAction.REMOVE) {
 		for (const c of session.clients) {
 			if (c.clientId === clientId) {
-				const i = c.selected.indexOf(item.id);
+				const i = c.selected.indexOf(note.id);
 				if (i != -1) c.selected.removeAt(i);
 				return;
 			}
@@ -61,8 +59,8 @@ export const updateRemoteNoteSelection = (
 	if (action == selectAction.MULTI) {
 		for (const c of session.clients) {
 			if (c.clientId === clientId) {
-				const i = c.selected.indexOf(item.id);
-				if (i == -1) c.selected.insertAtEnd(item.id);
+				const i = c.selected.indexOf(note.id);
+				if (i == -1) c.selected.insertAtEnd(note.id);
 				return;
 			}
 		}
@@ -73,7 +71,7 @@ export const updateRemoteNoteSelection = (
 		for (const c of session.clients) {
 			if (c.clientId === clientId) {
 				if (c.selected.length > 0) c.selected.removeRange(0);
-				c.selected.insertAtStart(item.id);
+				c.selected.insertAtStart(note.id);
 				return;
 			}
 		}
@@ -81,14 +79,14 @@ export const updateRemoteNoteSelection = (
 
 	const s = new Client({
 		clientId: clientId,
-		selected: [item.id],
+		selected: [note.id],
 	});
 
 	session.clients.insertAtEnd(s);
 };
 
-export const getSelectedSessions = (clientSession: ClientSession, clientId: string): string[] => {
-	for (const c of clientSession.clients) {
+export const getSelectedNotes = (session: ClientSession, clientId: string): string[] => {
+	for (const c of session.clients) {
 		if (c.clientId == clientId) {
 			return c.selected.concat();
 		}

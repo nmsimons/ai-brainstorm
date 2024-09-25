@@ -2,7 +2,7 @@ import { IMember, TreeView } from "fluid-framework";
 import React from "react";
 import { UserAvatars } from "./avatars_ux.js";
 import { HeaderPrompt } from "./prompt_ux.js";
-import { Conference } from "../schema/app_schema.js";
+import { Items } from "../schema/app_schema.js";
 import { PrompterResult } from "../utils/gpt_helpers.js";
 import { MainBranch, ViewBranch } from "../utils/utils.js";
 
@@ -13,18 +13,18 @@ export function Header(props: {
 	currentUser: IMember | undefined;
 	applyAgentEdits: (
 		prompt: string,
-		treeView: TreeView<typeof Conference>,
+		treeView: TreeView<typeof Items>,
 		abortController: AbortController,
 	) => Promise<PrompterResult>;
-	treeViewBase: MainBranch<typeof Conference>;
+	treeViewBase: MainBranch<typeof Items>;
 	abortController: AbortController;
-	setCurrentView: (arg: ViewBranch<typeof Conference>) => void;
-	currentView: ViewBranch<typeof Conference>;
+	setCurrentView: (arg: ViewBranch<typeof Items>) => void;
+	currentView: ViewBranch<typeof Items>;
 }): JSX.Element {
 	return (
 		<div className="h-[48px] flex shrink-0 flex-row items-center justify-between bg-black text-base text-white z-40 w-full gap-4">
 			<div className="flex m-2 text-nowrap">
-				Planner | {props.connectionState} | {props.saved ? "saved" : "not saved"}
+				Brainstorm | {props.connectionState} | {props.saved ? "saved" : "not saved"}
 			</div>
 			<HeaderPrompt
 				applyAgentEdits={props.applyAgentEdits}
