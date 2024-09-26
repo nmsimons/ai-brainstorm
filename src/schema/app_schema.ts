@@ -9,7 +9,6 @@ import {
 	Tree,
 	ValidateRecursiveSchema,
 } from "fluid-framework";
-import { v4 as uuid } from "uuid";
 
 // Schema is defined using a factory object that generates classes for objects as well
 // as list and map nodes.
@@ -26,11 +25,11 @@ export class Note extends sf.object(
 	// Fields for Notes which SharedTree will store and synchronize across clients.
 	// These fields are exposed as members of instances of the Note class.
 	{
+		text: sf.string,
 		/**
 		 * Id to make building the React app simpler.
 		 */
-		id: sf.string,
-		text: sf.string,
+		id: sf.identifier,
 		author: sf.string,
 		/**
 		 * Sequence of user ids to track which users have voted on this note.
@@ -79,7 +78,6 @@ export class Items extends sf.arrayRecursive("Items", [() => Group, Note]) {
 		// Define the note to add to the SharedTree - this must conform to
 		// the schema definition of a note
 		const newNote = new Note({
-			id: uuid(),
 			text: "",
 			author,
 			votes: [],
@@ -96,7 +94,6 @@ export class Items extends sf.arrayRecursive("Items", [() => Group, Note]) {
 	 */
 	public readonly addGroup = (name: string): Group => {
 		const group = new Group({
-			id: uuid(),
 			name,
 			items: new Items([]),
 		});
@@ -116,7 +113,7 @@ export class Items extends sf.arrayRecursive("Items", [() => Group, Note]) {
 
 // Define the schema for the container of notes.
 export class Group extends sf.object("Group", {
-	id: sf.string,
+	id: sf.identifier,
 	name: sf.string,
 	items: Items,
 }) {
