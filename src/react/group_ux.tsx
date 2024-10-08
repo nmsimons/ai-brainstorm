@@ -20,24 +20,7 @@ export function GroupView(props: {
 	session: ClientSession;
 	fluidMembers: IMember[];
 }): JSX.Element {
-	// copy the array of items from the group
-	// to force a re-render when the array changes
-	const [itemsArray, setItemsArray] = useState<(Note | Group)[]>(
-		props.group.items.map((item) => item),
-	);
 	const [name, setName] = useState(props.group.name);
-
-	// Register for tree deltas when the component mounts.
-	// Any time the items array changes, the app will update
-	// Note, we are only listening to changes to the array
-	// not the items within the array. Those changes are
-	// handled by the NoteView component.
-	useEffect(() => {
-		const unsubscribe = Tree.on(props.group.items, "nodeChanged", () => {
-			setItemsArray(props.group.items.map((item) => item));
-		});
-		return unsubscribe;
-	}, []);
 
 	// Register for tree deltas when the component mounts.
 	// Any time the group changes, the app will update
@@ -123,8 +106,7 @@ export function GroupView(props: {
 					deletePile={props.group.delete}
 				/>
 				<ItemsView
-					items={itemsArray}
-					parent={props.group.items}
+					items={props.group.items}
 					clientId={props.clientId}
 					session={props.session}
 					fluidMembers={props.fluidMembers}

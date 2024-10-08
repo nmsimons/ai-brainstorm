@@ -30,13 +30,31 @@ export class Note extends sf.object(
 		 * Id to make building the React app simpler.
 		 */
 		id: sf.identifier,
-		author: sf.string,
+		author: sf.required(
+			sf.string,
+			sf.required(sf.number, {
+				metadata: {
+					llmDefault: () => {
+						return "LLM";
+					},
+				},
+			}),
+		),
 		/**
 		 * Sequence of user ids to track which users have voted on this note.
 		 */
 		votes: sf.array(sf.string),
-		created: sf.number,
-		lastChanged: sf.number,
+		created: sf.required(sf.number, { metadata: { llmDefault: () => Date.now() } }),
+		lastChanged: sf.required(sf.number, { metadata: { llmDefault: () => Date.now() } }),
+	},
+	{
+		metadata: {
+			description:
+				"A note is an idea about a subject of a brainstorming session." +
+				"The 'text' is the description of the idea and that is where you should focus." +
+				"Leave the votes field as an empty array." +
+				"When you create a note, put it in the root items array - not in a group.",
+		},
 	},
 ) {
 	// Update the note text and also update the timestamp in the note
@@ -112,11 +130,21 @@ export class Items extends sf.arrayRecursive("Items", [() => Group, Note]) {
 }
 
 // Define the schema for the container of notes.
-export class Group extends sf.object("Group", {
-	id: sf.identifier,
-	name: sf.string,
-	items: Items,
-}) {
+export class Group extends sf.object(
+	"Group",
+	{
+		id: sf.identifier,
+		name: sf.string,
+		items: Items,
+	},
+	{
+		metadata: {
+			description:
+				"A group is a collection of related notes. These are stored in the items array." +
+				"The 'name' is the description of the group.",
+		},
+	},
+) {
 	/**
 	 * Removes a group from its parent {@link Items}.
 	 * If the note is not in an {@link Items}, it is left unchanged.
@@ -146,5 +174,5 @@ export class Group extends sf.object("Group", {
 // This is passed into the SharedTree when it is initialized.
 export const appTreeConfiguration = new TreeViewConfiguration(
 	// Schema for the root
-	{ schema: Items },
+	{ schema: Group },
 );

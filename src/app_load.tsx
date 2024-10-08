@@ -6,7 +6,7 @@ import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { createRoot } from "react-dom/client";
 import { ReactApp } from "./react/ux.js";
-import { appTreeConfiguration, Items } from "./schema/app_schema.js";
+import { Group, appTreeConfiguration, Items } from "./schema/app_schema.js";
 import { sessionTreeConfiguration } from "./schema/session_schema.js";
 import { createSessionPrompter, PrompterResult } from "./utils/gpt_helpers.js";
 import { createUndoRedoStacks } from "./utils/undo.js";
@@ -27,7 +27,11 @@ export async function loadApp(
 	if (sessionTree.compatibility.canInitialize) sessionTree.initialize({ clients: [] });
 
 	const appTree = container.initialObjects.appData.viewWith(appTreeConfiguration);
-	if (appTree.compatibility.canInitialize) appTree.initialize(new Items([]));
+	if (appTree.compatibility.canInitialize)
+		appTree.initialize({
+			name: "root",
+			items: new Items([]),
+		});
 
 	// create the root element for React
 	const app = document.createElement("div");

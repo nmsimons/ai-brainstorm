@@ -28,7 +28,7 @@ import {
 import { undoRedo } from "../utils/undo.js";
 
 export function Canvas(props: {
-	items: TreeView<typeof Items>;
+	items: TreeView<typeof Group>;
 	sessionTree: TreeView<typeof ClientSession>;
 	audience: IServiceAudience<IMember>;
 	container: IFluidContainer;
@@ -40,19 +40,6 @@ export function Canvas(props: {
 	setSaved: (arg: boolean) => void;
 	setFluidMembers: (arg: IMember[]) => void;
 }): JSX.Element {
-	const [itemsArray, setItemsArray] = useState<(Note | Group)[]>(
-		props.items.root.map((item) => item),
-	);
-
-	// Register for tree deltas when the component mounts.
-	// Any time the items array changes, the app will update.
-	useEffect(() => {
-		const unsubscribe = Tree.on(props.items.root, "nodeChanged", () => {
-			setItemsArray(props.items.root.map((item) => item));
-		});
-		return unsubscribe;
-	}, []);
-
 	useEffect(() => {
 		const updateConnectionState = () => {
 			if (props.container.connectionState === ConnectionState.Connected) {
@@ -99,8 +86,7 @@ export function Canvas(props: {
 	return (
 		<div className="relative flex grow-0 h-full w-full bg-transparent">
 			<ItemsView
-				items={itemsArray}
-				parent={props.items.root}
+				items={props.items.root.items}
 				clientId={props.currentUser.id}
 				session={props.sessionTree.root}
 				fluidMembers={props.fluidMembers}
@@ -108,14 +94,14 @@ export function Canvas(props: {
 			<Floater>
 				<ButtonGroup>
 					<NewGroupButton
-						items={props.items.root}
+						items={props.items.root.items}
 						session={props.sessionTree.root}
 						clientId={props.currentUser.id}
 					/>
-					<NewNoteButton items={props.items.root} clientId={props.currentUser.id} />
+					<NewNoteButton items={props.items.root.items} clientId={props.currentUser.id} />
 					<DeleteNotesButton
 						session={props.sessionTree.root}
-						items={props.items.root}
+						items={props.items.root.items}
 						clientId={props.currentUser.id}
 					/>
 				</ButtonGroup>
@@ -129,16 +115,27 @@ export function Canvas(props: {
 }
 
 export function ItemsView(props: {
-	items: (Note | Group)[];
-	parent: Items;
+	items: Items;
 	clientId: string;
 	session: ClientSession;
 	fluidMembers: IMember[];
 }): JSX.Element {
-	const isRoot = Tree.parent(props.parent) === undefined;
+	const [itemsArray, setItemsArray] = useState<(Note | Group)[]>(props.items.map((item) => item));
+
+	const parent = Tree.parent(props.items);
+	const isRoot = parent === undefined || Tree.parent(parent) === undefined;
+
+	// Register for tree deltas when the component mounts.
+	// Any time the items array changes, the app will update.
+	useEffect(() => {
+		const unsubscribe = Tree.on(props.items, "nodeChanged", () => {
+			setItemsArray(props.items.map((item) => item));
+		});
+		return unsubscribe;
+	}, []);
 
 	const pilesArray = [];
-	for (const i of props.items) {
+	for (const i of itemsArray) {
 		if (Tree.is(i, Group)) {
 			pilesArray.push(
 				<GroupView
@@ -183,7 +180,7 @@ export function ItemsView(props: {
 		);
 	} else {
 		pilesArray.push(
-			<AddNoteButton key="newNote" target={props.parent} clientId={props.clientId} />,
+			<AddNoteButton key="newNote" target={props.items} clientId={props.clientId} />,
 		);
 		return <div className="flex flex-row flex-wrap gap-8 p-2">{pilesArray}</div>;
 	}

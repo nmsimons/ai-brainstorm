@@ -2,7 +2,7 @@ import { IMember, TreeView } from "fluid-framework";
 import React from "react";
 import { UserAvatars } from "./avatars_ux.js";
 import { HeaderPrompt } from "./prompt_ux.js";
-import { Items } from "../schema/app_schema.js";
+import { Group, Items } from "../schema/app_schema.js";
 import { PrompterResult } from "../utils/gpt_helpers.js";
 import { MainBranch, ViewBranch } from "../utils/utils.js";
 
@@ -13,13 +13,13 @@ export function Header(props: {
 	currentUser: IMember | undefined;
 	applyAgentEdits: (
 		prompt: string,
-		treeView: TreeView<typeof Items>,
+		treeView: TreeView<typeof Group>,
 		abortController: AbortController,
 	) => Promise<PrompterResult>;
-	treeViewBase: MainBranch<typeof Items>;
+	treeViewBase: MainBranch<typeof Group>;
 	abortController: AbortController;
-	setCurrentView: (arg: ViewBranch<typeof Items>) => void;
-	currentView: ViewBranch<typeof Items>;
+	setCurrentView: (arg: ViewBranch<typeof Group>) => void;
+	currentView: ViewBranch<typeof Group>;
 }): JSX.Element {
 	return (
 		<div className="h-[48px] flex shrink-0 flex-row items-center justify-between bg-black text-base text-white z-40 w-full gap-4">

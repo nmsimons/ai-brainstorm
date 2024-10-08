@@ -5,7 +5,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from "react";
-import { Items } from "../schema/app_schema.js";
+import { Group, Items } from "../schema/app_schema.js";
 import { ClientSession } from "../schema/session_schema.js";
 import "../output.css";
 import { IFluidContainer, IMember, IServiceAudience, TreeView } from "fluid-framework";
@@ -16,14 +16,14 @@ import { PrompterResult } from "../utils/gpt_helpers.js";
 import { MainBranch, ViewBranch } from "../utils/utils.js";
 
 export function ReactApp(props: {
-	appTree: TreeView<typeof Items>;
+	appTree: TreeView<typeof Group>;
 	sessionTree: TreeView<typeof ClientSession>;
 	audience: IServiceAudience<IMember>;
 	container: IFluidContainer;
 	undoRedo: undoRedo;
 	applyAgentEdits: (
 		prompt: string,
-		treeView: TreeView<typeof Items>,
+		treeView: TreeView<typeof Group>,
 		abortController: AbortController,
 	) => Promise<PrompterResult>;
 	abortController: AbortController;
@@ -33,11 +33,11 @@ export function ReactApp(props: {
 	const [saved, setSaved] = useState(false);
 	const [fluidMembers, setFluidMembers] = useState<IMember[]>([]);
 
-	const treeViewBase: MainBranch<typeof Items> = {
+	const treeViewBase: MainBranch<typeof Group> = {
 		name: "main",
 		view: props.appTree,
 	};
-	const [currentView, setCurrentView] = useState<ViewBranch<typeof Items>>(treeViewBase);
+	const [currentView, setCurrentView] = useState<ViewBranch<typeof Group>>(treeViewBase);
 
 	/** Unsubscribe to undo-redo events when the component unmounts */
 	useEffect(() => {

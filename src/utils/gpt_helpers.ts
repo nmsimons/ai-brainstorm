@@ -1,4 +1,4 @@
-import { Items, Note } from "../schema/app_schema.js";
+import { Group, Items, Note } from "../schema/app_schema.js";
 import { AzureOpenAI } from "openai";
 import { PublicClientApplication } from "@azure/msal-browser";
 
@@ -29,7 +29,7 @@ export function createSessionPrompter(
 	msalInstance: PublicClientApplication,
 ): (
 	prompt: string,
-	treeView: TreeView<typeof Items>,
+	treeView: TreeView<typeof Group>,
 	abortController: AbortController,
 ) => Promise<PrompterResult> {
 	console.log("Creating Azure OpenAI prompter");
