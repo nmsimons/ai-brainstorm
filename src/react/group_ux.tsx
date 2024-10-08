@@ -29,50 +29,56 @@ export function GroupView(props: {
 			setName(props.group.name);
 		});
 		return unsubscribe;
-	}, []);
+	}, [props.group]);
 
 	const parent = Tree.parent(props.group);
 	if (!Tree.is(parent, Items)) {
 		return <></>;
 	}
 
-	const [, drag] = useDrag(() => ({
-		type: dragType.GROUP,
-		item: props.group,
-		collect: (monitor) => ({
-			isDragging: monitor.isDragging(),
+	const [, drag] = useDrag(
+		() => ({
+			type: dragType.GROUP,
+			item: props.group,
+			collect: (monitor) => ({
+				isDragging: monitor.isDragging(),
+			}),
 		}),
-	}));
+		[props.group],
+	);
 
-	const [{ isOver, canDrop }, drop] = useDrop(() => ({
-		accept: [dragType.NOTE, dragType.GROUP],
-		collect: (monitor) => ({
-			isOver: !!monitor.isOver({ shallow: true }),
-			canDrop: !!monitor.canDrop(),
+	const [{ isOver, canDrop }, drop] = useDrop(
+		() => ({
+			accept: [dragType.NOTE, dragType.GROUP],
+			collect: (monitor) => ({
+				isOver: !!monitor.isOver({ shallow: true }),
+				canDrop: !!monitor.canDrop(),
+			}),
+			canDrop: (item) => {
+				if (Tree.is(item, Note)) return true;
+				if (Tree.is(item, Group) && !Tree.contains(item, parent)) return true;
+				return false;
+			},
+			drop: (item, monitor) => {
+				const didDrop = monitor.didDrop();
+				if (didDrop) {
+					return;
+				}
+
+				const isOver = monitor.isOver({ shallow: true });
+				if (!isOver) {
+					return;
+				}
+
+				if (Tree.is(item, Group) || Tree.is(item, Note)) {
+					moveItem(item, parent.indexOf(props.group), parent);
+				}
+
+				return;
+			},
 		}),
-		canDrop: (item) => {
-			if (Tree.is(item, Note)) return true;
-			if (Tree.is(item, Group) && !Tree.contains(item, parent)) return true;
-			return false;
-		},
-		drop: (item, monitor) => {
-			const didDrop = monitor.didDrop();
-			if (didDrop) {
-				return;
-			}
-
-			const isOver = monitor.isOver({ shallow: true });
-			if (!isOver) {
-				return;
-			}
-
-			if (Tree.is(item, Group) || Tree.is(item, Note)) {
-				moveItem(item, parent.indexOf(props.group), parent);
-			}
-
-			return;
-		},
-	}));
+		[props.group, parent],
+	);
 
 	function attachRef(el: ConnectableElement) {
 		drag(el);

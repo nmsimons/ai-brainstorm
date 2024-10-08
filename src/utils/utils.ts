@@ -3,9 +3,9 @@
  * Licensed under the MIT License.
  */
 
-import { ImplicitFieldSchema, TreeView } from "fluid-framework";
+import { ImplicitFieldSchema, TreeView, TreeViewConfiguration } from "fluid-framework";
 import { Note } from "../schema/app_schema.js";
-import { TreeBranchFork } from "fluid-framework/alpha";
+import { getBranch, TreeBranchFork } from "fluid-framework/alpha";
 
 export const undefinedUserId = "[UNDEFINED]";
 
@@ -55,3 +55,25 @@ export interface TempBranch<T extends ImplicitFieldSchema> {
 }
 
 export type ViewBranch<T extends ImplicitFieldSchema> = MainBranch<T> | TempBranch<T>;
+
+// Create a new temp branch if we're not already on one.
+export function getTempBranch<T extends ImplicitFieldSchema>(
+	currentView: ViewBranch<T>,
+	treeViewBase: MainBranch<T>,
+): ViewBranch<T> {
+	// If we're already on an unmerged temp branch, keep using it.
+	// Otherwise, create a new temp branch and return it.
+	if (currentView.name === "temp") {
+		return currentView;
+	} else {
+		const tempBranch = getBranch(treeViewBase.view).branch();
+		const tempBranchView = tempBranch.viewWith(
+			new TreeViewConfiguration({ schema: treeViewBase.view.schema }),
+		);
+		return {
+			branch: tempBranch,
+			view: tempBranchView,
+			name: "temp",
+		};
+	}
+}

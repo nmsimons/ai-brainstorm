@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { Group, Items } from "../schema/app_schema.js";
-import { TreeView, TreeViewConfiguration } from "fluid-framework";
+import { Group } from "../schema/app_schema.js";
+import { TreeView } from "fluid-framework";
 import { getBranch } from "fluid-framework/alpha";
 import { PrompterResult } from "../utils/gpt_helpers.js";
-import { MainBranch, TempBranch, ViewBranch } from "../utils/utils.js";
+import { getTempBranch, MainBranch, ViewBranch } from "../utils/utils.js";
 
 enum PromptState {
 	Idle,
@@ -35,22 +35,7 @@ export function HeaderPrompt(props: {
 		setPromptState(PromptState.Prompting);
 		setPromptText("");
 
-		// If we're already on an unmerged temp branch, keep using it.
-		// Otherwise, create a new temp branch and set it as the current view.
-		let branch: TempBranch<typeof Group>;
-		if (props.currentView.name === "temp") {
-			branch = props.currentView;
-		} else {
-			const tempBranch = getBranch(props.treeViewBase.view).branch();
-			const tempBranchView = tempBranch.viewWith(
-				new TreeViewConfiguration({ schema: Group }),
-			);
-			branch = {
-				branch: tempBranch,
-				view: tempBranchView,
-				name: "temp",
-			};
-		}
+		const branch = getTempBranch(props.currentView, props.treeViewBase);
 
 		// Kick off the prompt, asynchronously applying the edits to the temp branch
 		props

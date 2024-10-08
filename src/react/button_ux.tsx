@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import { Items, Note } from "../schema/app_schema.js";
+import { Group, Items, Note } from "../schema/app_schema.js";
 import { moveItem, findNote } from "../utils/app_helpers.js";
 import {
 	ThumbLikeFilled,
@@ -14,10 +14,13 @@ import {
 	RectangleLandscapeRegular,
 	ArrowUndoFilled,
 	ArrowRedoFilled,
+	BranchFilled,
 } from "@fluentui/react-icons";
 import { ClientSession } from "../schema/session_schema.js";
 import { getSelectedNotes } from "../utils/session_helpers.js";
 import { Tree } from "fluid-framework";
+import { getTempBranch as getTempBranch, MainBranch, ViewBranch } from "../utils/utils.js";
+import { getBranch } from "fluid-framework/alpha";
 
 export function NewGroupButton(props: {
 	items: Items;
@@ -121,6 +124,37 @@ export function RedoButton(props: { redo: () => void }): JSX.Element {
 			icon={<ArrowRedoFilled />}
 		>
 			Redo
+		</IconButton>
+	);
+}
+
+export function BranchButton(props: {
+	treeViewBase: MainBranch<typeof Group>;
+	setCurrentView: (arg: ViewBranch<typeof Group>) => void;
+	currentView: ViewBranch<typeof Group>;
+}): JSX.Element {
+	// handle the click event
+	const handleClick = () => {
+		if (props.currentView.name === "temp") {
+			// merge the temp branch into the main branch
+			getBranch(props.treeViewBase.view).merge(props.currentView.branch, true);
+
+			// set the view to the main branch
+			props.setCurrentView(props.treeViewBase);
+		} else {
+			// set the view to the temp branch
+			props.setCurrentView(getTempBranch(props.currentView, props.treeViewBase));
+		}
+	};
+
+	return (
+		<IconButton
+			color="white"
+			background="black"
+			handleClick={() => handleClick()}
+			icon={<BranchFilled />}
+		>
+			{props.currentView.name === "temp" ? "Merge" : "Branch"}
 		</IconButton>
 	);
 }

@@ -24,11 +24,14 @@ import {
 	ButtonGroup,
 	UndoButton,
 	RedoButton,
+	BranchButton,
 } from "./button_ux.js";
 import { undoRedo } from "../utils/undo.js";
+import { MainBranch, ViewBranch } from "../utils/utils.js";
 
 export function Canvas(props: {
-	items: TreeView<typeof Group>;
+	currentView: ViewBranch<typeof Group>;
+	treeViewBase: MainBranch<typeof Group>;
 	sessionTree: TreeView<typeof ClientSession>;
 	audience: IServiceAudience<IMember>;
 	container: IFluidContainer;
@@ -39,6 +42,7 @@ export function Canvas(props: {
 	setConnectionState: (arg: string) => void;
 	setSaved: (arg: boolean) => void;
 	setFluidMembers: (arg: IMember[]) => void;
+	setCurrentView: (arg: ViewBranch<typeof Group>) => void;
 }): JSX.Element {
 	useEffect(() => {
 		const updateConnectionState = () => {
@@ -59,7 +63,7 @@ export function Canvas(props: {
 		props.container.on("dirty", () => props.setSaved(false));
 		props.container.on("saved", () => props.setSaved(true));
 		props.container.on("disposed", updateConnectionState);
-	}, []);
+	}, [props, props.container]);
 
 	const updateMembers = () => {
 		if (props.audience.getMyself() == undefined) return;
@@ -76,17 +80,26 @@ export function Canvas(props: {
 	};
 
 	useEffect(() => {
-		props.audience.on("membersChanged", updateMembers);
 		updateMembers();
+	});
+
+	useEffect(() => {
+		props.audience.on("membersChanged", updateMembers);
 		return () => {
 			props.audience.off("membersChanged", updateMembers);
 		};
-	}, []);
+	}, [props.audience]);
+
+	if (props.currentView.name === "temp") {
+		console.log("isBranch");
+	} else {
+		console.log("notBranch");
+	}
 
 	return (
 		<div className="relative flex grow-0 h-full w-full bg-transparent">
 			<ItemsView
-				items={props.items.root.items}
+				items={props.currentView.view.root.items}
 				clientId={props.currentUser.id}
 				session={props.sessionTree.root}
 				fluidMembers={props.fluidMembers}
@@ -94,15 +107,25 @@ export function Canvas(props: {
 			<Floater>
 				<ButtonGroup>
 					<NewGroupButton
-						items={props.items.root.items}
+						items={props.currentView.view.root.items}
 						session={props.sessionTree.root}
 						clientId={props.currentUser.id}
 					/>
-					<NewNoteButton items={props.items.root.items} clientId={props.currentUser.id} />
+					<NewNoteButton
+						items={props.currentView.view.root.items}
+						clientId={props.currentUser.id}
+					/>
 					<DeleteNotesButton
 						session={props.sessionTree.root}
-						items={props.items.root.items}
+						items={props.currentView.view.root.items}
 						clientId={props.currentUser.id}
+					/>
+				</ButtonGroup>
+				<ButtonGroup>
+					<BranchButton
+						currentView={props.currentView}
+						setCurrentView={props.setCurrentView}
+						treeViewBase={props.treeViewBase}
 					/>
 				</ButtonGroup>
 				<ButtonGroup>
@@ -132,7 +155,7 @@ export function ItemsView(props: {
 			setItemsArray(props.items.map((item) => item));
 		});
 		return unsubscribe;
-	}, []);
+	}, [props.items]);
 
 	const pilesArray = [];
 	for (const i of itemsArray) {

@@ -2,7 +2,7 @@ import { IMember, TreeView } from "fluid-framework";
 import React from "react";
 import { UserAvatars } from "./avatars_ux.js";
 import { HeaderPrompt } from "./prompt_ux.js";
-import { Group, Items } from "../schema/app_schema.js";
+import { Group } from "../schema/app_schema.js";
 import { PrompterResult } from "../utils/gpt_helpers.js";
 import { MainBranch, ViewBranch } from "../utils/utils.js";
 

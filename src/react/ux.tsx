@@ -5,7 +5,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from "react";
-import { Group, Items } from "../schema/app_schema.js";
+import { Group } from "../schema/app_schema.js";
 import { ClientSession } from "../schema/session_schema.js";
 import "../output.css";
 import { IFluidContainer, IMember, IServiceAudience, TreeView } from "fluid-framework";
@@ -33,10 +33,11 @@ export function ReactApp(props: {
 	const [saved, setSaved] = useState(false);
 	const [fluidMembers, setFluidMembers] = useState<IMember[]>([]);
 
-	const treeViewBase: MainBranch<typeof Group> = {
+	const [treeViewBase] = useState<MainBranch<typeof Group>>({
 		name: "main",
 		view: props.appTree,
-	};
+	});
+
 	const [currentView, setCurrentView] = useState<ViewBranch<typeof Group>>(treeViewBase);
 
 	/** Unsubscribe to undo-redo events when the component unmounts */
@@ -85,7 +86,9 @@ export function ReactApp(props: {
 				/>
 				<div className="flex h-[calc(100vh-48px)] flex-row ">
 					<Canvas
-						items={currentView.view}
+						currentView={currentView}
+						treeViewBase={treeViewBase}
+						setCurrentView={setCurrentView}
 						sessionTree={props.sessionTree}
 						audience={props.audience}
 						container={props.container}

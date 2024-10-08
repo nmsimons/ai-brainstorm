@@ -78,11 +78,11 @@ export function NoteView(props: {
 			setInvalSelection(invalSelection + Math.random());
 		});
 		return unsubscribe;
-	}, []);
+	}, [invalSelection, props.session]);
 
 	useEffect(() => {
 		testSelection(props.note, props.session, props.clientId, props.fluidMembers);
-	}, [invalSelection]);
+	}, [invalSelection, props.note, props.session, props.clientId, props.fluidMembers]);
 
 	// Register for tree deltas when the component mounts.
 	// Any time the node changes, the app will update
@@ -93,11 +93,11 @@ export function NoteView(props: {
 			setNoteVoteCount(props.note.votes.length);
 		});
 		return unsubscribe;
-	}, []);
+	}, [props.note]);
 
 	useEffect(() => {
 		testSelection(props.note, props.session, props.clientId, props.fluidMembers);
-	}, [props.fluidMembers]);
+	}, [props.fluidMembers, props.note, props.session, props.clientId]);
 
 	useEffect(() => {
 		mounted.current = true;
@@ -106,7 +106,7 @@ export function NoteView(props: {
 		return () => {
 			mounted.current = false;
 		};
-	}, []);
+	}, [mounted, props.note, props.session, props.clientId, props.fluidMembers]);
 
 	useEffect(() => {
 		if (selected) {
@@ -119,8 +119,9 @@ export function NoteView(props: {
 	toggle(false);
 
 	useEffect(() => {
-		toggle(true);
-	}, [Tree.parent(props.note)]);
+		const parent = Tree.parent(props.note);
+		toggle(parent !== undefined && Tree.is(parent, Items));
+	}, [props.note]);
 
 	useEffect(() => {
 		if (mounted.current) {
@@ -128,32 +129,38 @@ export function NoteView(props: {
 		}
 	}, [props.note.text]);
 
-	const [{ isDragging }, drag] = useDrag(() => ({
-		type: dragType.NOTE,
-		item: props.note,
-		collect: (monitor) => ({
-			isDragging: monitor.isDragging(),
+	const [{ isDragging }, drag] = useDrag(
+		() => ({
+			type: dragType.NOTE,
+			item: props.note,
+			collect: (monitor) => ({
+				isDragging: monitor.isDragging(),
+			}),
 		}),
-	}));
+		[props.note],
+	);
 
-	const [{ isOver, canDrop }, drop] = useDrop(() => ({
-		accept: [dragType.NOTE, dragType.GROUP],
-		collect: (monitor) => ({
-			isOver: !!monitor.isOver(),
-			canDrop: !!monitor.canDrop(),
+	const [{ isOver, canDrop }, drop] = useDrop(
+		() => ({
+			accept: [dragType.NOTE, dragType.GROUP],
+			collect: (monitor) => ({
+				isOver: !!monitor.isOver(),
+				canDrop: !!monitor.canDrop(),
+			}),
+			canDrop: (item) => {
+				if (Tree.is(item, Note)) return true;
+				if (Tree.is(item, Group) && !Tree.contains(item, parent)) return true;
+				return false;
+			},
+			drop: (item) => {
+				if (Tree.is(item, Group) || Tree.is(item, Note)) {
+					moveItem(item, parent.indexOf(props.note), parent);
+				}
+				return;
+			},
 		}),
-		canDrop: (item) => {
-			if (Tree.is(item, Note)) return true;
-			if (Tree.is(item, Group) && !Tree.contains(item, parent)) return true;
-			return false;
-		},
-		drop: (item) => {
-			if (Tree.is(item, Group) || Tree.is(item, Note)) {
-				moveItem(item, parent.indexOf(props.note), parent);
-			}
-			return;
-		},
-	}));
+		[props.note, parent],
+	);
 
 	const attachRef = (el: ConnectableElement) => {
 		drag(el);
@@ -269,27 +276,30 @@ function NoteToolbar(props: {
 }
 
 export function AddNoteButton(props: { target: Items; clientId: string }): JSX.Element {
-	const [{ isActive }, drop] = useDrop(() => ({
-		accept: [dragType.NOTE, dragType.GROUP],
-		collect: (monitor) => ({
-			isActive: monitor.canDrop() && monitor.isOver(),
-		}),
-		canDrop: (item) => {
-			if (Tree.is(item, Note)) return true;
-			if (Tree.is(item, Group) && !Tree.contains(item, props.target)) return true;
-			return false;
-		},
-		drop: (item) => {
-			if (Tree.is(item, Note) || Tree.is(item, Group)) {
-				const parent = Tree.parent(item);
-				if (Tree.is(parent, Items)) {
-					const index = parent.indexOf(item);
-					props.target.moveToEnd(index, parent);
+	const [{ isActive }, drop] = useDrop(
+		() => ({
+			accept: [dragType.NOTE, dragType.GROUP],
+			collect: (monitor) => ({
+				isActive: monitor.canDrop() && monitor.isOver(),
+			}),
+			canDrop: (item) => {
+				if (Tree.is(item, Note)) return true;
+				if (Tree.is(item, Group) && !Tree.contains(item, props.target)) return true;
+				return false;
+			},
+			drop: (item) => {
+				if (Tree.is(item, Note) || Tree.is(item, Group)) {
+					const parent = Tree.parent(item);
+					if (Tree.is(parent, Items)) {
+						const index = parent.indexOf(item);
+						props.target.moveToEnd(index, parent);
+					}
 				}
-			}
-			return;
-		},
-	}));
+				return;
+			},
+		}),
+		[props.target],
+	);
 
 	let size = "h-48 w-48";
 	let buttonText = "Add Note";
