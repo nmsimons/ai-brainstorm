@@ -158,7 +158,7 @@ export function ItemsView(props: {
 	}, [props.items]);
 
 	const pilesArray = [];
-	for (const i of itemsArray) {
+	for (const i of props.items) {
 		if (Tree.is(i, Group)) {
 			pilesArray.push(
 				<GroupView

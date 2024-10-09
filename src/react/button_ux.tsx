@@ -186,7 +186,7 @@ export function BranchButton(props: {
 				handleClick={() => branch()}
 				icon={<BranchFilled />}
 			>
-				Branch
+				Local Branch
 			</IconButton>
 		);
 	}
