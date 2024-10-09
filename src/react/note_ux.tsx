@@ -34,6 +34,8 @@ export function NoteView(props: {
 	session: ClientSession;
 	fluidMembers: IMember[];
 }): JSX.Element {
+	console.log("NoteView");
+
 	const mounted = useRef(false);
 
 	const [{ status }, toggle] = useTransition({
@@ -241,6 +243,8 @@ function NoteTextArea(props: {
 	// This works well with small strings but doesn't scale to very large strings.
 	// A Future iteration of SharedTree will include support for collaborative strings
 	// that make real-time collaboration on this type of data efficient and simple.
+
+	console.log("NoteTextArea");
 
 	const handleClick = (e: React.MouseEvent) => {
 		e.stopPropagation();

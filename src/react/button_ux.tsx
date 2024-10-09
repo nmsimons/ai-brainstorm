@@ -15,11 +15,18 @@ import {
 	ArrowUndoFilled,
 	ArrowRedoFilled,
 	BranchFilled,
+	CheckmarkFilled,
 } from "@fluentui/react-icons";
 import { ClientSession } from "../schema/session_schema.js";
 import { getSelectedNotes } from "../utils/session_helpers.js";
 import { Tree } from "fluid-framework";
-import { getTempBranch as getTempBranch, MainBranch, ViewBranch } from "../utils/utils.js";
+import {
+	defaultButtonColor,
+	defaultButtonHoverColor,
+	getTempBranch as getTempBranch,
+	MainBranch,
+	ViewBranch,
+} from "../utils/utils.js";
 import { getBranch } from "fluid-framework/alpha";
 
 export function NewGroupButton(props: {
@@ -46,7 +53,7 @@ export function NewGroupButton(props: {
 	return (
 		<IconButton
 			color="white"
-			background="black"
+			background={defaultButtonColor}
 			handleClick={(e: React.MouseEvent) => handleClick(e)}
 			icon={<RectangleLandscapeRegular />}
 		>
@@ -64,7 +71,7 @@ export function NewNoteButton(props: { items: Items; clientId: string }): JSX.El
 	return (
 		<IconButton
 			color="white"
-			background="black"
+			background={defaultButtonColor}
 			handleClick={(e: React.MouseEvent) => handleClick(e)}
 			icon={<NoteRegular />}
 		>
@@ -93,12 +100,10 @@ export function DeleteNotesButton(props: {
 	return (
 		<IconButton
 			color="white"
-			background="black"
+			background={defaultButtonColor}
 			handleClick={() => handleClick()}
 			icon={<DeleteRegular />}
-		>
-			Delete Note
-		</IconButton>
+		></IconButton>
 	);
 }
 
@@ -106,12 +111,10 @@ export function UndoButton(props: { undo: () => void }): JSX.Element {
 	return (
 		<IconButton
 			color="white"
-			background="black"
+			background={defaultButtonColor}
 			handleClick={() => props.undo()}
 			icon={<ArrowUndoFilled />}
-		>
-			Undo
-		</IconButton>
+		></IconButton>
 	);
 }
 
@@ -119,12 +122,10 @@ export function RedoButton(props: { redo: () => void }): JSX.Element {
 	return (
 		<IconButton
 			color="white"
-			background="black"
+			background={defaultButtonColor}
 			handleClick={() => props.redo()}
 			icon={<ArrowRedoFilled />}
-		>
-			Redo
-		</IconButton>
+		></IconButton>
 	);
 }
 
@@ -133,30 +134,62 @@ export function BranchButton(props: {
 	setCurrentView: (arg: ViewBranch<typeof Group>) => void;
 	currentView: ViewBranch<typeof Group>;
 }): JSX.Element {
-	// handle the click event
-	const handleClick = () => {
+	const buttonKeepColor = "bg-green-500";
+	const buttonRevertColor = "bg-red-500";
+
+	const branch = () => {
+		// set the view to the temp branch
+		props.setCurrentView(getTempBranch(props.currentView, props.treeViewBase));
+	};
+
+	const merge = () => {
 		if (props.currentView.name === "temp") {
 			// merge the temp branch into the main branch
 			getBranch(props.treeViewBase.view).merge(props.currentView.branch, true);
 
 			// set the view to the main branch
 			props.setCurrentView(props.treeViewBase);
-		} else {
-			// set the view to the temp branch
-			props.setCurrentView(getTempBranch(props.currentView, props.treeViewBase));
 		}
 	};
 
-	return (
-		<IconButton
-			color="white"
-			background="black"
-			handleClick={() => handleClick()}
-			icon={<BranchFilled />}
-		>
-			{props.currentView.name === "temp" ? "Merge" : "Branch"}
-		</IconButton>
-	);
+	const discard = () => {
+		// set the view to the main branch
+		props.setCurrentView(props.treeViewBase);
+	};
+
+	if (props.currentView.name === "temp") {
+		return (
+			<>
+				<IconButton
+					color="white"
+					background={buttonKeepColor}
+					handleClick={() => merge()}
+					icon={<CheckmarkFilled />}
+				>
+					Merge
+				</IconButton>
+				<IconButton
+					color="white"
+					background={buttonRevertColor}
+					handleClick={() => discard()}
+					icon={<DismissFilled />}
+				>
+					Discard
+				</IconButton>
+			</>
+		);
+	} else {
+		return (
+			<IconButton
+				color="white"
+				background={defaultButtonColor}
+				handleClick={() => branch()}
+				icon={<BranchFilled />}
+			>
+				Branch
+			</IconButton>
+		);
+	}
 }
 
 export function DeleteButton(props: {
@@ -168,9 +201,7 @@ export function DeleteButton(props: {
 	};
 	return (
 		<button
-			className={
-				"bg-transparent hover:bg-gray-600 text-black hover:text-white font-bold px-2 py-1 rounded inline-flex items-center h-6"
-			}
+			className={`bg-transparent hover:${defaultButtonHoverColor} text-black hover:text-white font-bold px-2 py-1 rounded inline-flex items-center h-6`}
 			onClick={(e) => handleClick(e)}
 		>
 			{MiniX()}
@@ -192,12 +223,7 @@ export function IconButton(props: {
 
 	return (
 		<button
-			className={
-				props.color +
-				" " +
-				props.background +
-				" hover:bg-gray-600 hover:text-white font-bold px-2 py-1 rounded inline-flex items-center h-6 grow"
-			}
+			className={`${props.color} ${props.background} hover:${defaultButtonHoverColor} hover:text-white font-bold p-2 rounded inline-flex items-center h-7 grow`}
 			onClick={(e) => handleClick(e)}
 		>
 			{props.icon}
@@ -228,7 +254,7 @@ export function MiniThumb(): JSX.Element {
 }
 
 export function ButtonGroup(props: { children: React.ReactNode }): JSX.Element {
-	return <div className="flex flex-intial items-center">{props.children}</div>;
+	return <div className="flex flex-intial items-center gap-x-2">{props.children}</div>;
 }
 
 export function Floater(props: { children: React.ReactNode }): JSX.Element {

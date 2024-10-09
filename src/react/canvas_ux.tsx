@@ -81,7 +81,7 @@ export function Canvas(props: {
 
 	useEffect(() => {
 		updateMembers();
-	});
+	}, []);
 
 	useEffect(() => {
 		props.audience.on("membersChanged", updateMembers);

@@ -17,9 +17,7 @@ export function HeaderPrompt(props: {
 		treeView: TreeView<typeof Group>,
 		abortController: AbortController,
 	) => Promise<PrompterResult>;
-	treeViewBase: MainBranch<typeof Group>;
 	abortController: AbortController;
-	setCurrentView: (arg: ViewBranch<typeof Group>) => void;
 	currentView: ViewBranch<typeof Group>;
 }): JSX.Element {
 	const placeholderType = "Type here to talk to a robot...";
@@ -35,11 +33,9 @@ export function HeaderPrompt(props: {
 		setPromptState(PromptState.Prompting);
 		setPromptText("");
 
-		const branch = getTempBranch(props.currentView, props.treeViewBase);
-
-		// Kick off the prompt, asynchronously applying the edits to the temp branch
+		// Kick off the prompt, applying the edits to the current branch
 		props
-			.applyAgentEdits(prompt, branch.view, props.abortController)
+			.applyAgentEdits(prompt, props.currentView.view, props.abortController)
 			.then((result: PrompterResult) => {
 				switch (result) {
 					case "success":
@@ -58,31 +54,12 @@ export function HeaderPrompt(props: {
 				// TODO: this should probably cancel out of and return to `Idle` when an error is encountered.
 				setPromptState(PromptState.Reviewing);
 			});
-
-		// Set the temp branch as the current view
-		props.setCurrentView(branch);
 	};
 
 	const handleCancelClick = () => {
 		props.abortController.abort("User cancelled");
 		setPromptState(PromptState.Idle);
 		setPromptText("");
-
-		// Set the current view back to the main branch
-		props.setCurrentView(props.treeViewBase);
-	};
-
-	const handleRevertClick = () => {
-		setPromptState(PromptState.Idle);
-		props.setCurrentView(props.treeViewBase);
-	};
-
-	const handleKeepClick = () => {
-		if (props.currentView.name === "temp") {
-			getBranch(props.treeViewBase.view).merge(props.currentView.branch, true);
-		}
-		setPromptState(PromptState.Idle);
-		props.setCurrentView(props.treeViewBase);
 	};
 
 	// capture the return key to insert the template
@@ -127,12 +104,7 @@ export function HeaderPrompt(props: {
 				className={`flex h-fit w-fit ${
 					promptState === PromptState.Reviewing ? "" : "hidden"
 				}`}
-			>
-				<HeaderCommitButtons
-					onKeep={() => handleKeepClick()}
-					onDiscard={() => handleRevertClick()}
-				/>
-			</div>
+			></div>
 		</div>
 	);
 }
@@ -168,26 +140,6 @@ export function HeaderCancelButton(props: { onClick: () => void }): JSX.Element 
 			color={buttonCancelColor}
 			text={"Cancel"}
 		/>
-	);
-}
-
-// React component that renders two buttons that give the
-// user the option to keep or discard the changes made
-export function HeaderCommitButtons(props: {
-	onKeep: () => void;
-	onDiscard: () => void;
-}): JSX.Element {
-	const buttonKeepColor = "bg-green-500";
-	const buttonRevertColor = "bg-red-500";
-	return (
-		<div className="h-full w-full flex flex-row items-center gap-2">
-			<div className="flex h-fit w-fit">
-				<HeaderButton text="Keep" color={buttonKeepColor} onClick={props.onKeep} />
-			</div>
-			<div className="flex h-fit w-fit">
-				<HeaderButton text="Discard" color={buttonRevertColor} onClick={props.onDiscard} />
-			</div>
-		</div>
 	);
 }
 

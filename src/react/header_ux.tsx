@@ -28,9 +28,7 @@ export function Header(props: {
 			</div>
 			<HeaderPrompt
 				applyAgentEdits={props.applyAgentEdits}
-				treeViewBase={props.treeViewBase}
 				abortController={props.abortController}
-				setCurrentView={props.setCurrentView}
 				currentView={props.currentView}
 			/>
 			<UserAvatars

@@ -9,6 +9,9 @@ import { getBranch, TreeBranchFork } from "fluid-framework/alpha";
 
 export const undefinedUserId = "[UNDEFINED]";
 
+export const defaultButtonColor = "bg-gray-600";
+export const defaultButtonHoverColor = "bg-gray-700";
+
 export function getRotation(note: Note) {
 	const i = hashCode(note.id);
 
