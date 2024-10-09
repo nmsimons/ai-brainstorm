@@ -13,7 +13,7 @@ import { Canvas } from "./canvas_ux.js";
 import { undoRedo } from "../utils/undo.js";
 import { Header } from "./header_ux.js";
 import { PrompterResult } from "../utils/gpt_helpers.js";
-import { MainBranch, ViewBranch } from "../utils/utils.js";
+import { ViewBranch } from "../utils/branching.js";
 
 export function ReactApp(props: {
 	appTree: TreeView<typeof Group>;
@@ -33,9 +33,9 @@ export function ReactApp(props: {
 	const [saved, setSaved] = useState(false);
 	const [fluidMembers, setFluidMembers] = useState<IMember[]>([]);
 
-	const [treeViewBase] = useState<MainBranch<typeof Group>>({
-		name: "main",
+	const [treeViewBase] = useState<ViewBranch<typeof Group>>({
 		view: props.appTree,
+		branch: undefined,
 	});
 
 	const [currentView, setCurrentView] = useState<ViewBranch<typeof Group>>(treeViewBase);

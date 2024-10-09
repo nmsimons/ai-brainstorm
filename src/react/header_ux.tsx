@@ -4,7 +4,7 @@ import { UserAvatars } from "./avatars_ux.js";
 import { HeaderPrompt } from "./prompt_ux.js";
 import { Group } from "../schema/app_schema.js";
 import { PrompterResult } from "../utils/gpt_helpers.js";
-import { MainBranch, ViewBranch } from "../utils/utils.js";
+import { ViewBranch } from "../utils/branching.js";
 
 export function Header(props: {
 	saved: boolean;
@@ -16,7 +16,7 @@ export function Header(props: {
 		treeView: TreeView<typeof Group>,
 		abortController: AbortController,
 	) => Promise<PrompterResult>;
-	treeViewBase: MainBranch<typeof Group>;
+	treeViewBase: ViewBranch<typeof Group>;
 	abortController: AbortController;
 	setCurrentView: (arg: ViewBranch<typeof Group>) => void;
 	currentView: ViewBranch<typeof Group>;

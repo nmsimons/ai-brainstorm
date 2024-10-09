@@ -20,13 +20,8 @@ import {
 import { ClientSession } from "../schema/session_schema.js";
 import { getSelectedNotes } from "../utils/session_helpers.js";
 import { Tree } from "fluid-framework";
-import {
-	defaultButtonColor,
-	defaultButtonHoverColor,
-	getTempBranch as getTempBranch,
-	MainBranch,
-	ViewBranch,
-} from "../utils/utils.js";
+import { defaultButtonColor, defaultButtonHoverColor } from "../utils/utils.js";
+import { getTempBranch, ViewBranch } from "../utils/branching.js";
 import { getBranch } from "fluid-framework/alpha";
 
 export function NewGroupButton(props: {
@@ -130,7 +125,7 @@ export function RedoButton(props: { redo: () => void }): JSX.Element {
 }
 
 export function BranchButton(props: {
-	treeViewBase: MainBranch<typeof Group>;
+	treeViewBase: ViewBranch<typeof Group>;
 	setCurrentView: (arg: ViewBranch<typeof Group>) => void;
 	currentView: ViewBranch<typeof Group>;
 }): JSX.Element {
@@ -143,7 +138,7 @@ export function BranchButton(props: {
 	};
 
 	const merge = () => {
-		if (props.currentView.name === "temp") {
+		if (props.currentView.branch !== undefined) {
 			// merge the temp branch into the main branch
 			getBranch(props.treeViewBase.view).merge(props.currentView.branch, true);
 
@@ -157,7 +152,7 @@ export function BranchButton(props: {
 		props.setCurrentView(props.treeViewBase);
 	};
 
-	if (props.currentView.name === "temp") {
+	if (props.currentView.branch !== undefined) {
 		return (
 			<>
 				<IconButton

@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 import { Group } from "../schema/app_schema.js";
 import { TreeView } from "fluid-framework";
-import { getBranch } from "fluid-framework/alpha";
 import { PrompterResult } from "../utils/gpt_helpers.js";
-import { getTempBranch, MainBranch, ViewBranch } from "../utils/utils.js";
+import { ViewBranch } from "../utils/branching.js";
 
 enum PromptState {
 	Idle,

@@ -27,11 +27,11 @@ import {
 	BranchButton,
 } from "./button_ux.js";
 import { undoRedo } from "../utils/undo.js";
-import { MainBranch, ViewBranch } from "../utils/utils.js";
+import { ViewBranch } from "../utils/branching.js";
 
 export function Canvas(props: {
 	currentView: ViewBranch<typeof Group>;
-	treeViewBase: MainBranch<typeof Group>;
+	treeViewBase: ViewBranch<typeof Group>;
 	sessionTree: TreeView<typeof ClientSession>;
 	audience: IServiceAudience<IMember>;
 	container: IFluidContainer;
@@ -90,7 +90,7 @@ export function Canvas(props: {
 		};
 	}, [props.audience]);
 
-	if (props.currentView.name === "temp") {
+	if (props.currentView.branch !== undefined) {
 		console.log("isBranch");
 	} else {
 		console.log("notBranch");
