@@ -59,17 +59,6 @@ export interface TempBranch<T extends ImplicitFieldSchema> {
 
 export type ViewBranch<T extends ImplicitFieldSchema> = MainBranch<T> | TempBranch<T>;
 
-export const updateBranchField = (text: string, root: Group) => {
-	// update the branch field of each note in the temp branch to say temp
-	for (const item of root.items) {
-		if (item instanceof Note) {
-			item.branch = text;
-		} else {
-			updateBranchField(text, item);
-		}
-	}
-};
-
 // Create a new temp branch if we're not already on one.
 export function getTempBranch<T extends ImplicitFieldSchema>(
 	currentView: ViewBranch<T>,
@@ -85,24 +74,10 @@ export function getTempBranch<T extends ImplicitFieldSchema>(
 			new TreeViewConfiguration({ schema: treeViewBase.view.schema }),
 		);
 
-		// update the branch field of each note in the temp branch to say temp
-		updateBranchField("temp", tempBranchView.root as unknown as Group);
-
 		return {
 			branch: tempBranch,
 			view: tempBranchView,
 			name: "temp",
 		};
 	}
-}
-
-// Get the main branch
-export function getMainBranch<T extends ImplicitFieldSchema>(
-	currentView: ViewBranch<T>,
-	treeViewBase: MainBranch<T>,
-): ViewBranch<T> {
-	// update the branch field of each note in the temp branch to say temp
-	updateBranchField("temp", treeViewBase.view.root as unknown as Group);
-
-	return treeViewBase;
 }

@@ -46,7 +46,6 @@ export class Note extends sf.object(
 		votes: sf.array(sf.string),
 		created: sf.required(sf.number, { metadata: { llmDefault: () => Date.now() } }),
 		lastChanged: sf.required(sf.number, { metadata: { llmDefault: () => Date.now() } }),
-		branch: sf.optional(sf.string),
 	},
 	{
 		metadata: {
