@@ -112,7 +112,7 @@ export function GroupView(props: {
 					deletePile={props.group.delete}
 				/>
 				<ItemsView
-					items={props.group.items}
+					group={props.group}
 					clientId={props.clientId}
 					session={props.session}
 					fluidMembers={props.fluidMembers}

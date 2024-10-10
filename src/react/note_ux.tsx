@@ -279,7 +279,7 @@ function NoteToolbar(props: {
 	);
 }
 
-export function AddNoteButton(props: { target: Items; clientId: string }): JSX.Element {
+export function AddNoteButton(props: { target: Group; clientId: string }): JSX.Element {
 	const [{ isActive }, drop] = useDrop(
 		() => ({
 			accept: [dragType.NOTE, dragType.GROUP],
@@ -288,7 +288,7 @@ export function AddNoteButton(props: { target: Items; clientId: string }): JSX.E
 			}),
 			canDrop: (item) => {
 				if (Tree.is(item, Note)) return true;
-				if (Tree.is(item, Group) && !Tree.contains(item, props.target)) return true;
+				if (Tree.is(item, Group) && !Tree.contains(item, props.target.items)) return true;
 				return false;
 			},
 			drop: (item) => {
@@ -296,7 +296,7 @@ export function AddNoteButton(props: { target: Items; clientId: string }): JSX.E
 					const parent = Tree.parent(item);
 					if (Tree.is(parent, Items)) {
 						const index = parent.indexOf(item);
-						props.target.moveToEnd(index, parent);
+						props.target.items.moveToEnd(index, parent);
 					}
 				}
 				return;
@@ -307,14 +307,14 @@ export function AddNoteButton(props: { target: Items; clientId: string }): JSX.E
 
 	let size = "h-48 w-48";
 	let buttonText = "Add Note";
-	if (props.target.length > 0) {
+	if (props.target.items.length > 0) {
 		buttonText = "+";
 		size = "h-48";
 	}
 
 	const handleClick = (e: React.MouseEvent) => {
 		e.stopPropagation();
-		props.target.addNode(props.clientId);
+		props.target.items.addNode(props.clientId);
 	};
 
 	const hoverEffectStyle = "absolute top-0 left-0 border-l-4 border-dashed h-48 ";

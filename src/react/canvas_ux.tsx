@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState } from "react";
-import { Note, Group, Items } from "../schema/app_schema.js";
+import { Note, Group } from "../schema/app_schema.js";
 import { ClientSession } from "../schema/session_schema.js";
 import {
 	ConnectionState,
@@ -99,7 +99,7 @@ export function Canvas(props: {
 	return (
 		<div className="relative flex grow-0 h-full w-full bg-transparent">
 			<ItemsView
-				items={props.currentView.view.root.items}
+				group={props.currentView.view.root}
 				clientId={props.currentUser.id}
 				session={props.sessionTree.root}
 				fluidMembers={props.fluidMembers}
@@ -138,73 +138,87 @@ export function Canvas(props: {
 }
 
 export function ItemsView(props: {
-	items: Items;
+	group: Group;
 	clientId: string;
 	session: ClientSession;
 	fluidMembers: IMember[];
 }): JSX.Element {
-	const [itemsArray, setItemsArray] = useState<(Note | Group)[]>(props.items.map((item) => item));
+	const { group, clientId, session, fluidMembers } = props;
 
-	const parent = Tree.parent(props.items);
-	const isRoot = parent === undefined || Tree.parent(parent) === undefined;
+	const [groupsArray, setGroupsArray] = useState<JSX.Element[]>([]);
 
 	// Register for tree deltas when the component mounts.
 	// Any time the items array changes, the app will update.
 	useEffect(() => {
-		const unsubscribe = Tree.on(props.items, "nodeChanged", () => {
-			setItemsArray(props.items.map((item) => item));
+		setGroupsArray(populateGroupsArray(group, clientId, session, fluidMembers));
+		const unsubscribe = Tree.on(group.items, "nodeChanged", () => {
+			setGroupsArray(populateGroupsArray(group, clientId, session, fluidMembers));
 		});
 		return unsubscribe;
-	}, [props.items]);
+	}, [clientId, fluidMembers, group, session]);
 
-	const pilesArray = [];
-	for (const i of props.items) {
+	const parent = Tree.parent(group);
+	const isRoot = parent === undefined || Tree.parent(parent) === undefined;
+
+	if (isRoot) {
+		return (
+			<div className="flex grow-0 flex-row h-full w-full flex-wrap gap-4 p-4 content-start overflow-y-scroll">
+				{groupsArray}
+				<div className="flex w-full h-24"></div>
+			</div>
+		);
+	} else {
+		return <div className="flex flex-row flex-wrap gap-8 p-2">{groupsArray}</div>;
+	}
+}
+
+const populateGroupsArray = (
+	group: Group,
+	clientId: string,
+	session: ClientSession,
+	fluidMembers: IMember[],
+): JSX.Element[] => {
+	const parent = Tree.parent(group);
+	const isRoot = parent === undefined || Tree.parent(parent) === undefined;
+	const groupsArray: JSX.Element[] = [];
+
+	for (const i of group.items) {
 		if (Tree.is(i, Group)) {
-			pilesArray.push(
+			groupsArray.push(
 				<GroupView
 					key={i.id}
 					group={i}
-					clientId={props.clientId}
-					session={props.session}
-					fluidMembers={props.fluidMembers}
+					clientId={clientId}
+					session={session}
+					fluidMembers={fluidMembers}
 				/>,
 			);
 		} else if (Tree.is(i, Note)) {
 			if (isRoot) {
-				pilesArray.push(
+				groupsArray.push(
 					<RootNoteWrapper
 						key={i.id}
 						note={i}
-						clientId={props.clientId}
-						session={props.session}
-						fluidMembers={props.fluidMembers}
+						clientId={clientId}
+						session={session}
+						fluidMembers={fluidMembers}
 					/>,
 				);
 			} else {
-				pilesArray.push(
+				groupsArray.push(
 					<NoteView
 						key={i.id}
 						note={i}
-						clientId={props.clientId}
-						session={props.session}
-						fluidMembers={props.fluidMembers}
+						clientId={clientId}
+						session={session}
+						fluidMembers={fluidMembers}
 					/>,
 				);
 			}
 		}
 	}
-
-	if (isRoot) {
-		return (
-			<div className="flex grow-0 flex-row h-full w-full flex-wrap gap-4 p-4 content-start overflow-y-scroll">
-				{pilesArray}
-				<div className="flex w-full h-24"></div>
-			</div>
-		);
-	} else {
-		pilesArray.push(
-			<AddNoteButton key="newNote" target={props.items} clientId={props.clientId} />,
-		);
-		return <div className="flex flex-row flex-wrap gap-8 p-2">{pilesArray}</div>;
+	if (!isRoot) {
+		groupsArray.push(<AddNoteButton key="newNote" target={group} clientId={clientId} />);
 	}
-}
+	return groupsArray;
+};
